@@ -5,12 +5,24 @@ export default {
   title: 'Quick Blog',
 
   /**
-   * The number of posts to load per page.
+   * The number of posts (or other types of content) to load per page.
    */
   postsPerPage: 10,
 
   /**
-   * The abolute path to the content to display.
+   * The directory in which all content lives
    */
-  postsPath: 'content/posts.json'
+  contentPath: 'content',
+
+  /**
+   * The content type (subdirectory to contentPath) in which the default content
+   * lives
+   */
+  defaultContentType: 'posts',
+
+  /**
+   * The content type (subdirectory to contentPath) in which the pages content,
+   * which is used to show the header navigation links, lives.
+   */
+  pagesContentType: 'pages'
 };

@@ -5,9 +5,9 @@
         {{ summary.title }}
       </router-link>
     </h1>
-    <div class="post-info"> {{ formattedDate }} - 
+    <div class="post-info"> {{ formattedDate }} -
       <li class="tag-link" v-for="tag in tags" :key="tag">
-        <router-link :to="'/tags/' + tag">
+        <router-link :to="'/posts/tags/' + tag">
           {{tag}}
         </router-link>
       </li>
@@ -56,7 +56,7 @@ export default Vue.component('Post', {
 }
 
 .content pre {
-  padding: 0.5em !important; 
+  padding: 0.5em !important;
 }
 
 </style>

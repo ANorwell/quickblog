@@ -1,67 +1,85 @@
 import moment, { Moment } from 'moment';
+import config from './config';
 
-interface PostSummary {
+interface ContentSummary {
     path: string;
     title: string;
     tags: string;
     date: Moment;
 }
 
-class PostData {
-    constructor(public summary: PostSummary, public content: string) {}
+class ContentData {
+    constructor(public summary: ContentSummary, public content: string) {}
 }
 
 class Store {
     public data = {
-         loadedPosts: [] as PostData[],
-         postSummaries: [] as PostSummary[],
+        loadedContents: [] as ContentData[],
+        contentSummaries: [] as ContentSummary[],
+        store: this
     };
 
-    private manifest: PostSummary[]|null = null;
+    private manifest: ContentSummary[]|null = null;
 
-    constructor(private readonly postsPath: string, private readonly postsPerPage: number) {}
+    constructor(private contentType: string, private readonly contentsPerPage: number) {}
 
-    public async fetchPostsByTag(tag: string | null = null) {
-        this.fetchPostsByFilter((post: PostSummary) => {
+    public hasMoreFetchableContent(): boolean {
+        return (this.data.loadedContents.length > 0) &&
+            (this.data.loadedContents.length < this.data.contentSummaries.length);
+    }
+
+    public setContentType(newContentType: string) {
+        if (newContentType !== this.contentType) {
+            this.data.loadedContents = [];
+            this.data.contentSummaries = [];
+            this.manifest = null;
+            this.contentType = newContentType;
+        }
+    }
+
+    public async filterContentsByTag(tag: string | null = null) {
+        await this.filterContents((content: ContentSummary) => {
             if (tag === null) {
-                return !post.tags.includes('draft');
+                return !content.tags.includes('draft');
             } else {
-                return post.tags.includes(tag);
+                return content.tags.includes(tag);
             }
         });
     }
 
-    public async fetchPostsByTitle(title: string) {
-        this.fetchPostsByFilter((post: PostSummary) => post.title === title);
+    public async filterContentsByTitle(title: string) {
+        await this.filterContents((content: ContentSummary) => content.title === title);
     }
 
     public async fetchMore() {
-        const lastPostIndex = this.data.loadedPosts.length;
-        const nextPage = this.data.postSummaries.slice(lastPostIndex, lastPostIndex + this.postsPerPage);
-        const loaded = await Promise.all(nextPage.map(async (p) => this.fetchPostData(p)));
-        this.data.loadedPosts = this.data.loadedPosts.concat(loaded);
+        const lastContentIndex = this.data.loadedContents.length;
+        const nextPage = this.data.contentSummaries.slice(lastContentIndex, lastContentIndex + this.contentsPerPage);
+        const loaded = await Promise.all(nextPage.map(async (p) => this.fetchContentData(p)));
+        this.data.loadedContents = this.data.loadedContents.concat(loaded);
     }
 
-    private async fetchPostsByFilter(filter: (p: PostSummary) => boolean) {
-        this.data.postSummaries = (await this.getManifest()).filter((post) => filter(post));
-        this.data.loadedPosts = [];
-        await this.fetchMore();
-    }
-
-    private async getManifest(): Promise<PostSummary[]> {
+    private async fetchIndex(): Promise<ContentSummary[]> {
         if (this.manifest === null) {
-            const out: PostSummary[] = await (await fetch(this.postsPath)).json();
+            const out: ContentSummary[] = await (await fetch(this.contentsPath())).json();
             this.manifest = out;
         }
         this.manifest.forEach((p) => p.date = moment(p.date));
-        return this.manifest as PostSummary[];
+        return this.manifest as ContentSummary[];
     }
 
-    private async fetchPostData(summary: PostSummary): Promise<PostData> {
+    private contentsPath(): string {
+        return config.contentPath + '/' + this.contentType + '.json';
+    }
+
+    private async filterContents(filter: (p: ContentSummary) => boolean) {
+        this.data.contentSummaries = (await this.fetchIndex()).filter((content) => filter(content));
+        this.data.loadedContents = [];
+    }
+
+    private async fetchContentData(summary: ContentSummary): Promise<ContentData> {
         const data = await (await fetch(summary.path)).text();
-        return new PostData(summary, data);
+        return new ContentData(summary, data);
     }
-
 }
 
 export default Store;
